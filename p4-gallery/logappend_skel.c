@@ -35,11 +35,9 @@ int strcheck(char *str, int lc, int uc, int num) {
 int parse_cmdline(int argc, char *argv[]) {
 
   int opt = -1;
-  int is_good = -1;
+  int is_good = 1;
   int timestamp;
-
   char* logpath;
-
 
   //pick up the switches
   while ((opt = getopt(argc, argv, "T:K:E:G:ALR:B:")) != -1) {
@@ -49,8 +47,16 @@ int parse_cmdline(int argc, char *argv[]) {
         break;
 
       case 'T':
-        printf("%s\n",argv[optind-1]);
-        printf("%d\n",strcheck(argv[optind-1],1,1,1));
+        /*check if arg contains only 0-9*/
+        if(strcheck(argv[optind-1],0,0,1)) {
+          timestamp = atoi(argv[optind-1]);
+          /*check if timestamp within range*/
+          if(timestamp < 1 || timestamp > 1073741823) {
+            is_good = 0;
+          }
+        } else {
+          is_good = 0;
+        }
         break;
 
       case 'K':
