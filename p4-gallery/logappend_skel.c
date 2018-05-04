@@ -12,6 +12,8 @@
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include <openssl/conf.h>
+#include <openssl/evp.h>
 
 struct Log{
   int timestamp;
@@ -189,6 +191,14 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
 int main(int argc, char *argv[]) {
 
   int result;
+  int init_token = 0;
+
+  EVP_MD_CTX *mdctx;
+  unsigned char md_value[EVP_MAX_MD_SIZE];
+  unsigned int md_len;
+
+  FILE *fp;
+  /*initialize log for later arugments check*/
   struct Log log = {.timestamp = -999,
                     .token     = "@",
                     .is_emp    = -999,
@@ -199,12 +209,14 @@ int main(int argc, char *argv[]) {
                     .logpath   = "@"};
   result = parse_cmdline(argc, argv, &log);
 
+  /*print invalid and exit with 255
+  if argument chekc didn't pass*/
   if(result == 0) {
     printf("invalid\n");
     exit(255);
   }
 
-  /*TODO: should print invalid and exit with 255
+  /*print invalid and exit with 255
   if some necessary arguments are missing
   optional argument: -B,-R*/
   if(log.timestamp == -999 || strcmp(log.token,"@") == 0
@@ -214,9 +226,36 @@ int main(int argc, char *argv[]) {
     exit(255);
   }
 
-  printf("Timestamp: %d, Token: %s\n", log.timestamp, log.token);
-  printf("%s is a(n) %s ", log.name, log.is_emp==1?"employee":"guest");
-  printf("who just %s room no.%d\n", log.is_arr==1?"arrived":"left",log.int_room);
-  printf("Log has been appended to %s\n", log.logpath);
+  /*check if log already exists*/
+  if(access(log.logpath,F_OK) < 0) {
+    init_token = 1;
+  }
+
+  /*try openning the log*/
+  fp = fopen(log.logpath, "a+");
+  if(fp == NULL) {
+    printf("invalid\n");
+    exit(255);
+  }
+
+  /*append token if log was newly created*/
+  if(init_token) {
+    mdctx = EVP_MD_CTX_create();
+    EVP_DigestInit_ex(mdctx,EVP_sha256(),NULL);
+    EVP_DigestUpdate(mdctx,log.token,strlen(log.token));
+    EVP_DigestFinal_ex(mdctx,md_value,&md_len);
+    EVP_MD_CTX_destroy(mdctx);
+    for(int i = 0; i < md_len; i++) {;
+      fprintf(fp, "%02x", md_value[i]);
+    }
+    fprintf(fp, "\n");
+  }
+
+  // fprintf(fp, "Timestamp: %d, Token: %s\n", log.timestamp, log.token);
+  // fprintf(fp, "%s is a(n) %s ", log.name, log.is_emp==1?"employee":"guest");
+  // fprintf(fp, "who just %s room no.%d\n", log.is_arr==1?"arrived":"left",log.int_room);
+  // fprintf(fp, "Log has been appended to %s\n", log.logpath);
+
+  fclose(fp);
   return 0;
 }
