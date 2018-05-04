@@ -24,8 +24,8 @@ struct Log{
   char *logpath;
 };
 
-int strcheck(char *str, int lc, int uc, int num) {
-  int lc_ans = lc, uc_ans = uc, num_ans = num;
+int strcheck(char *str, int lc, int uc, int num, int path_chars) {
+  int lc_ans = lc, uc_ans = uc, num_ans = num, path_chars_ans = path_chars;
 
   for(int i = 0; i < strlen(str); i++) {
     if(str[i] >= 97 && str[i] <= 122) {
@@ -34,12 +34,14 @@ int strcheck(char *str, int lc, int uc, int num) {
       uc_ans = uc_ans | 1;
     } else if(str[i] >= 48 && str[i] <= 57) {
       num_ans = num_ans | 1;
+    } else if(str[i] == 95 || str[i] == 46 || str[i] == 47){
+      path_chars_ans = path_chars_ans | 1;
     } else {
       return 0;
     }
   }
 
-  return (lc == lc_ans) && (uc == uc_ans) && (num == num_ans);
+  return (lc == lc_ans) && (uc == uc_ans) && (num == num_ans) && (path_chars_ans == path_chars);
 }
 
 int parse_cmdline(int argc, char *argv[], struct Log *log) {
@@ -48,7 +50,6 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
   int is_good = 1;
   int is_emp = -1;
   int is_arr = -1;
-  char* logpath;
 
   //pick up the switches
   /*is_good is set to 0 when arguments are invalid*/
@@ -61,7 +62,7 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
       case 'T':
         //timestamp
         /*check if arg contains only 0-9*/
-        if(strcheck(argv[optind-1],0,0,1)) {
+        if(strcheck(argv[optind-1],0,0,1,0)) {
           int timestamp = atoi(argv[optind-1]);
           /*check if timestamp within range*/
           if(timestamp < 1 || timestamp > 1073741823) {
@@ -77,7 +78,7 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
       case 'K':
         //secret token
         /*check if arg is alphanumeric*/
-        if(strcheck(argv[optind-1],1,1,1)) {
+        if(strcheck(argv[optind-1],1,1,1,0)) {
           log->token = argv[optind-1];
         } else {
           is_good = 0;
@@ -109,7 +110,7 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
       case 'E':
         //employee name
         /*check if arg contains only letters*/
-        if(strcheck(argv[optind-1],1,1,0)) {
+        if(strcheck(argv[optind-1],1,1,0,0)) {
           /*set is_emp to 1*/
           if(is_emp == -1 || is_emp == 1) {
             is_emp = 1;
@@ -126,7 +127,7 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
       case 'G':
         //guest name
         /*check if arg contains only letters*/
-        if(strcheck(argv[optind-1],1,1,0)) {
+        if(strcheck(argv[optind-1],1,1,0,0)) {
           /*set is_emp to 0*/
           if(is_emp == -1 || is_emp == 0) {
             is_emp = 0;
@@ -143,7 +144,7 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
       case 'R':
         //room ID
         /*check if room id contains only 0-9*/
-        if(strcheck(argv[optind-1],0,0,1)) {
+        if(strcheck(argv[optind-1],0,0,1,0)) {
           int int_room = atoi(argv[optind-1]);
           /*check if room id is within range*/
           if(int_room < 0 || int_room > 1073741823) {
@@ -167,7 +168,14 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
 
   //pick up the positional argument for log path
   if(optind < argc) {
-    logpath = argv[optind];
+    /*check arg format*/
+    if(strcheck(argv[optind],1,1,1,1)) {
+      log->logpath = argv[optind];
+    } else {
+      is_good = 0;
+    }
+  } else {
+    is_good = 0;
   }
 
   return is_good;
@@ -185,8 +193,13 @@ int main(int argc, char *argv[]) {
     exit(255);
   }
 
+  /*TODO: should print invalid and exit with 255
+  if some necessary arguments are missing
+  optional argument: -B,-R*/
+
   printf("Timestamp: %d, Token: %s\n", log.timestamp, log.token);
-  printf("This person is a(n) %s ", log.is_emp==1?"employee":"guest");
+  printf("%s is a(n) %s ", log.name, log.is_emp==1?"employee":"guest");
   printf("who just %s room no.%d\n", log.is_arr==1?"arrived":"left",log.int_room);
+  printf("Log has been appended to %s\n", log.logpath);
   return 0;
 }
