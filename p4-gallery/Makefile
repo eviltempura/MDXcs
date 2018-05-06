@@ -21,10 +21,10 @@ logread_skel.o: logread_skel.c
 	$(CC) logread_skel.c $(CFLAGS) -lcrypto -c
 
 test: test.o
-	$(CC) -o $@ $(CFLAGS) $^
+	$(CC) test.o $(CFLAGS) -lcrypto -o test
 
 test.o: test.c
-	$(CC) -c -o $@ $(CFLAGS) $^
+	$(CC) test.c $(CFLAGS) -lcrypto -c
 
 clean:
 	rm -f *.o logappend logread test.* test log1.txt

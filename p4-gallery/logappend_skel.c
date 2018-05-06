@@ -187,6 +187,12 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
   return is_good;
 }
 
+void debug_print(struct Log log) {
+  printf("Timestamp: %d, Token: %s\n", log.timestamp, log.token);
+  printf("%s is a(n) %s ", log.name, log.is_emp==1?"employee":"guest");
+  printf("who just %s room no.%d\n", log.is_arr==1?"arrived":"left",log.int_room);
+  printf("Log has been appended to %s\n", log.logpath);
+}
 
 int main(int argc, char *argv[]) {
 
@@ -197,7 +203,8 @@ int main(int argc, char *argv[]) {
   int result;
   int init_token = 0;
   char itoa_buffer[32];
-  char *input, *output;
+  char *input, *output, *alogs;
+  long fsize;
   FILE *fp;
 
   /*openssl<hashing> variables*/
@@ -207,9 +214,11 @@ int main(int argc, char *argv[]) {
 
   /*openssl<block cipher> variables*/
   EVP_CIPHER_CTX *ctx;
-  int outlen,tmplen;
+  int inlen,outlen,tmplen;
   unsigned char iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  unsigned char outbuf[1024];
+  unsigned char *outbuf;
+  unsigned char enc_tag[32] = {'\0'};
+  unsigned char dec_tag[32] = {'\0'};
 
   /*initialize log for later arugments check*/
   struct Log log = {.timestamp = -999,
@@ -278,21 +287,59 @@ int main(int argc, char *argv[]) {
   sprintf(itoa_buffer,"%d",log.int_room);
   strncat(output,itoa_buffer,strlen(itoa_buffer));
 
+  /*initialize context*/
+  ctx = EVP_CIPHER_CTX_new();
+
   /*if log is newly created, encrypt -> append -> exit*/
   if(init_token) {
-    ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(ctx,EVP_aes_256_cbc(),NULL,key,iv);
-    EVP_EncryptUpdate(ctx,outbuf,&outlen,output,strlen(output));
-    EVP_EncryptFinal_ex(ctx,outbuf+outlen,&tmplen);
-    outlen += tmplen;
-    EVP_CIPHER_CTX_free(ctx);
-    fprintf(fp, "%s\n", outbuf);
-  }
+    /*allocate memory for outbuf*/
+    outbuf = malloc(2*sizeof(char)*strlen(output));
 
-  // fprintf(fp, "Timestamp: %d, Token: %s\n", log.timestamp, log.token);
-  // fprintf(fp, "%s is a(n) %s ", log.name, log.is_emp==1?"employee":"guest");
-  // fprintf(fp, "who just %s room no.%d\n", log.is_arr==1?"arrived":"left",log.int_room);
-  // fprintf(fp, "Log has been appended to %s\n", log.logpath);
+    EVP_EncryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,key,iv);
+    EVP_EncryptUpdate(ctx,outbuf,&outlen,(unsigned char*)output,strlen(output));
+    EVP_EncryptFinal_ex(ctx,outbuf+outlen,&tmplen);
+    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_GET_TAG,16,enc_tag);
+
+    for(int i = 0; i < strlen((char *)enc_tag); i++) {
+      printf("%02x",enc_tag[i]);
+    }
+    printf("\n");
+
+    EVP_CIPHER_CTX_free(ctx);
+    fprintf(fp,"%s%s",outbuf,enc_tag);
+
+    /*release memory for outbuf*/
+    free(outbuf);
+
+  /*if log already exists, decrypt -> encrypt -> append -> exit*/
+  } else {
+    /*find the size of the file*/
+    fseek(fp,0L,SEEK_END);
+    fsize = ftell(fp);
+    rewind(fp);
+    /*allocate memory for buffer*/
+    input = malloc(fsize+1);
+    alogs = malloc(2*(fsize+1));
+    /*read the entire file into buffer*/
+    fread(input,1,fsize-16,fp);
+    fread(dec_tag,1,16,fp);
+
+    for(int i = 0; i < strlen((char *)dec_tag); i++) {
+      printf("%02x",dec_tag[i]);
+    }
+    printf("\n");
+
+    EVP_DecryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,key,iv);
+    EVP_DecryptUpdate(ctx,(unsigned char*)alogs,&inlen,(unsigned char*)input,strlen(input));
+    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_TAG,16,dec_tag);
+    printf("Success: %d\n",EVP_DecryptFinal_ex(ctx,(unsigned char*)alogs+inlen,&tmplen));
+    EVP_CIPHER_CTX_free(ctx);
+
+    printf("%s\n",alogs);
+
+    /*release memory for input*/
+    free(input);
+  }
 
   EVP_cleanup();
   fclose(fp);
