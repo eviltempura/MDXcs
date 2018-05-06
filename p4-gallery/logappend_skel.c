@@ -214,11 +214,11 @@ int main(int argc, char *argv[]) {
 
   /*openssl<block cipher> variables*/
   EVP_CIPHER_CTX *ctx;
-  int inlen,outlen,tmplen;
+  int inlen=0,outlen=0,tmplen=0;
   unsigned char iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   unsigned char *outbuf;
-  unsigned char enc_tag[32] = {'\0'};
-  unsigned char dec_tag[32] = {'\0'};
+  unsigned char enc_tag[32];
+  unsigned char dec_tag[32];
 
   /*initialize log for later arugments check*/
   struct Log log = {.timestamp = -999,
@@ -293,19 +293,19 @@ int main(int argc, char *argv[]) {
   /*if log is newly created, encrypt -> append -> exit*/
   if(init_token) {
     /*allocate memory for outbuf*/
-    outbuf = malloc(2*sizeof(char)*strlen(output));
+    outbuf = malloc(strlen(output)+32);
 
-    EVP_EncryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,key,iv);
+    EVP_EncryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,NULL,NULL);
+    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_IVLEN,sizeof(iv),NULL);
+    EVP_EncryptInit_ex(ctx,NULL,NULL,key,iv);
     EVP_EncryptUpdate(ctx,outbuf,&outlen,(unsigned char*)output,strlen(output));
     EVP_EncryptFinal_ex(ctx,outbuf+outlen,&tmplen);
     EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_GET_TAG,16,enc_tag);
-
-    for(int i = 0; i < strlen((char *)enc_tag); i++) {
-      printf("%02x",enc_tag[i]);
-    }
-    printf("\n");
-
     EVP_CIPHER_CTX_free(ctx);
+
+    /*null-terminate tag*/
+    enc_tag[16] = '\0';
+
     fprintf(fp,"%s%s",outbuf,enc_tag);
 
     /*release memory for outbuf*/
@@ -324,15 +324,15 @@ int main(int argc, char *argv[]) {
     fread(input,1,fsize-16,fp);
     fread(dec_tag,1,16,fp);
 
-    for(int i = 0; i < strlen((char *)dec_tag); i++) {
-      printf("%02x",dec_tag[i]);
-    }
-    printf("\n");
+    /*null-terminate the tag*/
+    dec_tag[16] = '\0';
 
-    EVP_DecryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,key,iv);
+    EVP_DecryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,NULL,NULL);
+    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_IVLEN,sizeof(iv),NULL);
+    EVP_DecryptInit_ex(ctx,NULL,NULL,key,iv);
     EVP_DecryptUpdate(ctx,(unsigned char*)alogs,&inlen,(unsigned char*)input,strlen(input));
     EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_TAG,16,dec_tag);
-    printf("Success: %d\n",EVP_DecryptFinal_ex(ctx,(unsigned char*)alogs+inlen,&tmplen));
+    EVP_DecryptFinal_ex(ctx,(unsigned char*)alogs+inlen,&tmplen);
     EVP_CIPHER_CTX_free(ctx);
 
     printf("%s\n",alogs);
