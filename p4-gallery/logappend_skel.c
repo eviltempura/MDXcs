@@ -190,14 +190,27 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
 
 int main(int argc, char *argv[]) {
 
+  ////////////////////////////////////////////////
+  /////////////////variables//////////////////////
+  ////////////////////////////////////////////////
+  /*general purpose variables*/
   int result;
   int init_token = 0;
+  char itoa_buffer[32];
+  char *input, *output;
+  FILE *fp;
 
+  /*openssl<hashing> variables*/
   EVP_MD_CTX *mdctx;
-  unsigned char md_value[EVP_MAX_MD_SIZE];
+  unsigned char key[EVP_MAX_MD_SIZE]; //symmetric key
   unsigned int md_len;
 
-  FILE *fp;
+  /*openssl<block cipher> variables*/
+  EVP_CIPHER_CTX *ctx;
+  int outlen,tmplen;
+  unsigned char iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  unsigned char outbuf[1024];
+
   /*initialize log for later arugments check*/
   struct Log log = {.timestamp = -999,
                     .token     = "@",
@@ -207,6 +220,11 @@ int main(int argc, char *argv[]) {
                     .int_room  = -999,
                     .char_room = "@",
                     .logpath   = "@"};
+  ////////////////////////////////////////////////
+  /////////////////variables//////////////////////
+  ////////////////////////////////////////////////
+
+  /*parse arguments*/
   result = parse_cmdline(argc, argv, &log);
 
   /*print invalid and exit with 255
@@ -238,17 +256,37 @@ int main(int argc, char *argv[]) {
     exit(255);
   }
 
-  /*append token if log was newly created*/
+  /*hash the token to generate symmetric key*/
+  mdctx = EVP_MD_CTX_create();
+  EVP_DigestInit_ex(mdctx,EVP_sha256(),NULL);
+  EVP_DigestUpdate(mdctx,log.token,strlen(log.token));
+  EVP_DigestFinal_ex(mdctx,key,&md_len);
+  EVP_MD_CTX_destroy(mdctx);
+
+  /*format log*/
+  output = malloc(sizeof(char)*strlen(log.name)+64);
+  strncat(output,"#",1);
+  sprintf(itoa_buffer,"%d",log.timestamp);
+  strncat(output,itoa_buffer,strlen(itoa_buffer));
+  strncat(output,",",1);
+  strncat(output,log.is_emp==1?"1":"0",1);
+  strncat(output,",",1);
+  strncat(output,log.is_arr==1?"1":"0",1);
+  strncat(output,",",1);
+  strncat(output,log.name,strlen(log.name));
+  strncat(output,",",1);
+  sprintf(itoa_buffer,"%d",log.int_room);
+  strncat(output,itoa_buffer,strlen(itoa_buffer));
+
+  /*if log is newly created, encrypt -> append -> exit*/
   if(init_token) {
-    mdctx = EVP_MD_CTX_create();
-    EVP_DigestInit_ex(mdctx,EVP_sha256(),NULL);
-    EVP_DigestUpdate(mdctx,log.token,strlen(log.token));
-    EVP_DigestFinal_ex(mdctx,md_value,&md_len);
-    EVP_MD_CTX_destroy(mdctx);
-    for(int i = 0; i < md_len; i++) {;
-      fprintf(fp, "%02x", md_value[i]);
-    }
-    fprintf(fp, "\n");
+    ctx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(ctx,EVP_aes_256_cbc(),NULL,key,iv);
+    EVP_EncryptUpdate(ctx,outbuf,&outlen,output,strlen(output));
+    EVP_EncryptFinal_ex(ctx,outbuf+outlen,&tmplen);
+    outlen += tmplen;
+    EVP_CIPHER_CTX_free(ctx);
+    fprintf(fp, "%s\n", outbuf);
   }
 
   // fprintf(fp, "Timestamp: %d, Token: %s\n", log.timestamp, log.token);
@@ -256,6 +294,7 @@ int main(int argc, char *argv[]) {
   // fprintf(fp, "who just %s room no.%d\n", log.is_arr==1?"arrived":"left",log.int_room);
   // fprintf(fp, "Log has been appended to %s\n", log.logpath);
 
+  EVP_cleanup();
   fclose(fp);
   return 0;
 }
