@@ -26,10 +26,6 @@ struct Log{
   struct Log *next;
 };
 
-int append(char *outbuf, ) {
-  
-}
-
 /*log is updated as following:
 log->timestamp becomes that of the latest log regardless of if person is found
 log->token is unchanged
@@ -44,9 +40,8 @@ int find_person(char *alogs, struct Log *log, char *name) {
   int ans = 0;
 
   /*tokenize alogs*/
-  token = strtok(alogs,"#");
+  token = strtok(alogs,",");
   while(token != NULL) {
-    token = strtok(token,",");
     tmptimestamp = atoi(token);
     token = strtok(NULL,",");
     tmpis_emp = atoi(token);
@@ -68,7 +63,7 @@ int find_person(char *alogs, struct Log *log, char *name) {
     }
 
     /*tokenize for next loop*/
-    token = strtok(NULL,"#");
+    token = strtok(NULL,",");
   }
 
   return ans;
@@ -104,6 +99,37 @@ unsigned char *iv, int iv_len, unsigned char *plaintext, unsigned char *tag) {
     EVP_CIPHER_CTX_free(ctx);
 
     return success;
+}
+
+int append(FILE *fp, unsigned char *plaintext, int plaintext_len, unsigned char *key, unsigned char *iv, int iv_len) {
+  unsigned char *outbuf;
+  unsigned char tag[32];
+  int bytes_encrypted;
+
+  /*allocate memory for outbuf*/
+  outbuf = malloc(plaintext_len+32);
+
+  /*encrypt*/
+  bytes_encrypted = encrypt(plaintext,plaintext_len,key,iv,iv_len,outbuf,tag);
+
+  /*null-terminate tag*/
+  tag[16] = '\0';
+
+  outbuf[plaintext_len] = '\0';
+
+  /*write the ciphertext*/
+  fprintf(fp,"%s%s",outbuf,tag);
+
+  /*release memory for outbuf*/
+  free(outbuf);
+
+  printf("Encreption TAG:");
+  for(int i = 0; i < strlen(tag); i++) {
+    printf("%02x",tag[i]);
+  }
+  printf("\n");
+
+  return bytes_encrypted;
 }
 
 int strcheck(char *str, int lc, int uc, int num, int path_chars) {
@@ -267,13 +293,6 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
   return is_good;
 }
 
-void debug_print(struct Log log) {
-  printf("Timestamp: %d, Token: %s\n", log.timestamp, log.token);
-  printf("%s is a(n) %s ", log.name, log.is_emp==1?"employee":"guest");
-  printf("who just %s room no.%d\n", log.is_arr==1?"arrived":"left",log.int_room);
-  printf("Log has been appended to %s\n", log.logpath);
-}
-
 int main(int argc, char *argv[]) {
 
   ////////////////////////////////////////////////
@@ -283,7 +302,7 @@ int main(int argc, char *argv[]) {
   int result;
   int init_token = 0;
   char itoa_buffer[32];
-  char *input, *output, *alogs;
+  char *input, *output, *alogs, *alogs_copy;
   long fsize;
   FILE *fp;
 
@@ -294,8 +313,6 @@ int main(int argc, char *argv[]) {
 
   /*openssl<block cipher> variables*/
   unsigned char iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  unsigned char *outbuf;
-  unsigned char enc_tag[32];
   unsigned char dec_tag[32];
 
   /*initialize log for later arugments check*/
@@ -317,7 +334,7 @@ int main(int argc, char *argv[]) {
   /*print invalid and exit with 255
   if argument chekc didn't pass*/
   if(result == 0) {
-    printf("invalid\n");
+    printf("invalid15\n");
     exit(255);
   }
 
@@ -327,7 +344,7 @@ int main(int argc, char *argv[]) {
   if(log.timestamp == -999 || strcmp(log.token,"@") == 0
   || log.is_emp == -999    || strcmp(log.name,"@") == 0
   || log.is_arr == -999    || strcmp(log.logpath,"@") == 0) {
-    printf("invalid\n");
+    printf("invalid16\n");
     exit(255);
   }
 
@@ -339,7 +356,7 @@ int main(int argc, char *argv[]) {
   /*try openning the log*/
   fp = fopen(log.logpath, "a+");
   if(fp == NULL) {
-    printf("invalid\n");
+    printf("invalid17\n");
     exit(255);
   }
 
@@ -352,7 +369,9 @@ int main(int argc, char *argv[]) {
 
   /*format log*/
   output = malloc(sizeof(char)*strlen(log.name)+64);
-  strncat(output,"#",1);
+  if(!init_token) {
+    strncat(output,",",1);
+  }
   sprintf(itoa_buffer,"%d",log.timestamp);
   strncat(output,itoa_buffer,strlen(itoa_buffer));
   strncat(output,",",1);
@@ -365,23 +384,10 @@ int main(int argc, char *argv[]) {
   sprintf(itoa_buffer,"%d",log.int_room==-999?-1:log.int_room);
   strncat(output,itoa_buffer,strlen(itoa_buffer));
 
-  /*if log is newly created, encrypt -> append -> exit*/
+  /*if log is newly created*/
   if(init_token) {
-    /*allocate memory for outbuf*/
-    outbuf = malloc(strlen(output)+32);
-
-    /*encrypt*/
-    encrypt((unsigned char *)output,strlen(output),key,iv,sizeof(iv),outbuf,enc_tag);
-
-    /*null-terminate tag*/
-    enc_tag[16] = '\0';
-
-    /*write the ciphertext*/
-    fprintf(fp,"%s%s",outbuf,enc_tag);
-
-    /*release memory for outbuf*/
-    free(outbuf);
-
+    /*append the log*/
+    append(fp,(unsigned char *)output,strlen(output),key,iv,sizeof(iv));
   /*if log already exists, decrypt -> encrypt -> append -> exit*/
   } else {
     /*find the size of the file*/
@@ -389,12 +395,18 @@ int main(int argc, char *argv[]) {
     fsize = ftell(fp);
     rewind(fp);
     /*allocate memory for buffer*/
-    input = malloc(fsize+1);
-    alogs = malloc(fsize+1);
+    input = malloc(fsize);
+    alogs = malloc(fsize);
     /*read the entire file into buffer*/
     fread(input,1,fsize-16,fp);
     fread(dec_tag,1,16,fp);
     rewind(fp);
+
+    printf("Decreption TAG:");
+    for(int i = 0; i < strlen(dec_tag); i++) {
+      printf("%02x",dec_tag[i]);
+    }
+    printf("\n");
 
     /*null-terminate the tag*/
     dec_tag[16] = '\0';
@@ -411,28 +423,29 @@ int main(int argc, char *argv[]) {
 
     /*decrypt and store plaintext into algos*/
     if(decrypt((unsigned char *)input,strlen(input),key,iv,sizeof(iv),(unsigned char *) alogs,dec_tag)) {
+      /*copy alogs for later use*/
+      alogs_copy = malloc(strlen(alogs));
+      strcpy(alogs_copy,alogs);
+
       /*try find the person and update tmplog*/
       if(find_person(alogs,&tmplog,log.name)) {
         /*if the log file is empty*/
         if(log.timestamp == -999) {
-          printf("invalid\n");
+          printf("invalid1\n");
           exit(255);
         }
 
         /*check timestamp*/
         if(log.timestamp <= tmplog.timestamp) {
-          printf("invalid\n");
+          printf("invalid2\n");
           exit(255);
         }
 
         /*a person cannot be employee and guest at the same time*/
         if(log.is_emp != tmplog.is_emp) {
-          printf("invalid\n");
+          printf("invalid3\n");
           exit(255);
         }
-
-        printf("Last: -T %d, %s, %s, %s, %d\n", tmplog.timestamp, tmplog.is_emp==1?"E":"G", tmplog.is_arr==1?"A":"L", tmplog.name, tmplog.int_room);
-        printf("This: -T %d, %s, %s, %s, %d\n", log.timestamp, log.is_emp==1?"E":"G", log.is_arr==1?"A":"L", log.name, log.int_room);
 
         /*the person just left*/
         if(tmplog.is_arr == 0) {
@@ -440,12 +453,12 @@ int main(int argc, char *argv[]) {
           if(tmplog.int_room == -1) { 
             /*the person is trying to leave again*/
             if(log.is_arr == 0) {
-              printf("invalid\n");
+              printf("invalid4\n");
               exit(255);
             } else {
               /*the person is trying to enter a room*/
               if(log.int_room != -1) {
-                printf("invalid\n");
+                printf("invalid5\n");
                 exit(255);
               /*the person is trying to enter the gallery*/
               } else {
@@ -454,13 +467,24 @@ int main(int argc, char *argv[]) {
             }
           /*the person just left a room*/
           } else {
-            /*the person is trying to leave a room again*/
-            if(log.int_room != -1) {
-              printf("invalid\n");
-              exit(255);
-            /*the person is trying to leave the gallery*/
+            /*the person is trying to leave again*/
+            if(log.is_arr == 0) {
+              /*the person is trying to leave a
+              room that he's not currently in*/
+              if(log.int_room != -1) {
+                printf("invalid6\n");
+                exit(255);
+              } else {
+                /*TODO: append log*/
+              }
             } else {
-              /*TODO: append log*/
+              /*the person is trying to enter gallery again*/
+              if(log.int_room == -1) {
+                printf("invalid11\n");
+                exit(255);
+              } else {
+                /*TODO: append log*/
+              }
             }
           }
         /*the person just entered*/
@@ -469,14 +493,14 @@ int main(int argc, char *argv[]) {
           if(tmplog.int_room != -1) {
             /*the person is trying to enter again*/
             if(log.is_arr == 1) {
-              printf("invalid\n");
+              printf("invalid7\n");
               exit(255);
             /*the person is trying to exit*/
             } else {
               /*the person is trying to exit
               from a different room*/
               if(log.int_room != tmplog.int_room) {
-                printf("invalid\n");
+                printf("invalid8\n");
                 exit(255);
               /*the person is trying exit
               from the current room*/
@@ -491,7 +515,7 @@ int main(int argc, char *argv[]) {
               /*the person is trying to enter
               the gallery again*/
               if(log.int_room == -1) {
-                printf("invalid\n");
+                printf("invalid9\n");
                 exit(255);
               /*the person is trying to enter a room*/
               } else {
@@ -502,7 +526,7 @@ int main(int argc, char *argv[]) {
               /*the perons is trying to leave from
               a room but he's in the gallery*/
               if(log.int_room != -1) {
-                printf("invalid\n");
+                printf("invalid10\n");
                 exit(255);
               /*the person is trying to leave the gallery*/
               } else {
@@ -512,12 +536,45 @@ int main(int argc, char *argv[]) {
           }
         }
       } else {
-        printf("Person not found\n");
+        /*if the log file is empty*/
+        if(log.timestamp == -999) {
+          printf("invalid18\n");
+          exit(255);
+        }
+
+        /*check timestamp*/
+        if(log.timestamp <= tmplog.timestamp) {
+          printf("invalid19\n");
+          exit(255);
+        }
+
+        /*the person is trying to leave
+        when he's not in any room*/
+        if(log.is_arr == 0) {
+          printf("invalid12\n");
+        } else {
+          /*the person is trying to enter a
+          room without entering the gallery*/
+          if(log.int_room != -1) {
+            printf("invalid13\n");
+          } else {
+            /*TODO: append log*/
+          }
+        }
       }
     } else {
-      printf("invalid\n");
+      printf("failed decreption: %s\n", alogs);
+      printf("invalid14\n");
       exit(255);
     }
+
+    alogs_copy = realloc(alogs_copy,strlen(alogs_copy)+strlen(output));
+    printf("original: %s\n",alogs_copy);
+    printf("new: %s\n",output);
+    strcat(alogs_copy,output);
+    printf("to be written: %s\n",alogs_copy);
+    fp = freopen(log.logpath,"w+",fp);
+    append(fp,(unsigned char *)alogs_copy,strlen(alogs_copy),key,iv,sizeof(iv));
     
 
     /*release memory for input*/
