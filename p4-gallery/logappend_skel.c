@@ -22,9 +22,89 @@ struct Log{
   char *name;
   int is_arr;
   int int_room;
-  char *char_room;
   char *logpath;
+  struct Log *next;
 };
+
+int append(char *outbuf, ) {
+  
+}
+
+/*log is updated as following:
+log->timestamp becomes that of the latest log regardless of if person is found
+log->token is unchanged
+log->is_emp gets updated only if the person is found
+log->name gets updated only if the person is found
+log->is_arr gets updated only if the person if found
+log->int_room gets updated only if the person is found
+log->logpath is unchanged*/
+int find_person(char *alogs, struct Log *log, char *name) {
+  char *token, *tmpname;
+  int tmptimestamp, tmpis_emp, tmpis_arr, tmpint_room;
+  int ans = 0;
+
+  /*tokenize alogs*/
+  token = strtok(alogs,"#");
+  while(token != NULL) {
+    token = strtok(token,",");
+    tmptimestamp = atoi(token);
+    token = strtok(NULL,",");
+    tmpis_emp = atoi(token);
+    token = strtok(NULL,",");
+    tmpis_arr = atoi(token);
+    token = strtok(NULL,",");
+    tmpname = token;
+    token = strtok(NULL,",");
+    tmpint_room = atoi(token);
+
+    /*update log accordingly*/
+    log->timestamp = tmptimestamp;
+    if(strcmp(tmpname,name)==0) {
+      log->is_emp = tmpis_emp;
+      log->is_arr = tmpis_arr;
+      log->name = tmpname;
+      log->int_room = tmpint_room;
+      ans = 1;
+    }
+
+    /*tokenize for next loop*/
+    token = strtok(NULL,"#");
+  }
+
+  return ans;
+}
+
+int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key,
+unsigned char *iv, int iv_len, unsigned char* ciphertext, unsigned char* tag) {
+    int outlen,tmplen;
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+
+    EVP_EncryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,NULL,NULL);
+    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_IVLEN,iv_len,NULL);
+    EVP_EncryptInit_ex(ctx,NULL,NULL,key,iv);
+    EVP_EncryptUpdate(ctx,ciphertext,&outlen,plaintext,plaintext_len);
+    EVP_EncryptFinal_ex(ctx,ciphertext+outlen,&tmplen);
+    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_GET_TAG,16,tag);
+    EVP_CIPHER_CTX_free(ctx);
+
+    return outlen+tmplen;
+}
+
+int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key,
+unsigned char *iv, int iv_len, unsigned char *plaintext, unsigned char *tag) {
+    int inlen,tmplen,success;
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+
+    EVP_DecryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,NULL,NULL);
+    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_IVLEN,iv_len,NULL);
+    EVP_DecryptInit_ex(ctx,NULL,NULL,key,iv);
+    EVP_DecryptUpdate(ctx,plaintext,&inlen,ciphertext,ciphertext_len);
+    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_TAG,16,tag);
+    success = EVP_DecryptFinal_ex(ctx,plaintext+inlen,&tmplen);
+    EVP_CIPHER_CTX_free(ctx);
+
+    return success;
+}
 
 int strcheck(char *str, int lc, int uc, int num, int path_chars) {
   int lc_ans = lc, uc_ans = uc, num_ans = num, path_chars_ans = path_chars;
@@ -213,8 +293,6 @@ int main(int argc, char *argv[]) {
   unsigned int md_len;
 
   /*openssl<block cipher> variables*/
-  EVP_CIPHER_CTX *ctx;
-  int inlen=0,outlen=0,tmplen=0;
   unsigned char iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   unsigned char *outbuf;
   unsigned char enc_tag[32];
@@ -226,9 +304,9 @@ int main(int argc, char *argv[]) {
                     .is_emp    = -999,
                     .name      = "@",
                     .is_arr    = -999,
-                    .int_room  = -999,
-                    .char_room = "@",
-                    .logpath   = "@"};
+                    .int_room  = -1,
+                    .logpath   = "@",
+                    .next      = NULL};
   ////////////////////////////////////////////////
   /////////////////variables//////////////////////
   ////////////////////////////////////////////////
@@ -284,28 +362,21 @@ int main(int argc, char *argv[]) {
   strncat(output,",",1);
   strncat(output,log.name,strlen(log.name));
   strncat(output,",",1);
-  sprintf(itoa_buffer,"%d",log.int_room);
+  sprintf(itoa_buffer,"%d",log.int_room==-999?-1:log.int_room);
   strncat(output,itoa_buffer,strlen(itoa_buffer));
-
-  /*initialize context*/
-  ctx = EVP_CIPHER_CTX_new();
 
   /*if log is newly created, encrypt -> append -> exit*/
   if(init_token) {
     /*allocate memory for outbuf*/
     outbuf = malloc(strlen(output)+32);
 
-    EVP_EncryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,NULL,NULL);
-    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_IVLEN,sizeof(iv),NULL);
-    EVP_EncryptInit_ex(ctx,NULL,NULL,key,iv);
-    EVP_EncryptUpdate(ctx,outbuf,&outlen,(unsigned char*)output,strlen(output));
-    EVP_EncryptFinal_ex(ctx,outbuf+outlen,&tmplen);
-    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_GET_TAG,16,enc_tag);
-    EVP_CIPHER_CTX_free(ctx);
+    /*encrypt*/
+    encrypt((unsigned char *)output,strlen(output),key,iv,sizeof(iv),outbuf,enc_tag);
 
     /*null-terminate tag*/
     enc_tag[16] = '\0';
 
+    /*write the ciphertext*/
     fprintf(fp,"%s%s",outbuf,enc_tag);
 
     /*release memory for outbuf*/
@@ -319,23 +390,135 @@ int main(int argc, char *argv[]) {
     rewind(fp);
     /*allocate memory for buffer*/
     input = malloc(fsize+1);
-    alogs = malloc(2*(fsize+1));
+    alogs = malloc(fsize+1);
     /*read the entire file into buffer*/
     fread(input,1,fsize-16,fp);
     fread(dec_tag,1,16,fp);
+    rewind(fp);
 
     /*null-terminate the tag*/
     dec_tag[16] = '\0';
 
-    EVP_DecryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,NULL,NULL);
-    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_IVLEN,sizeof(iv),NULL);
-    EVP_DecryptInit_ex(ctx,NULL,NULL,key,iv);
-    EVP_DecryptUpdate(ctx,(unsigned char*)alogs,&inlen,(unsigned char*)input,strlen(input));
-    EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_TAG,16,dec_tag);
-    EVP_DecryptFinal_ex(ctx,(unsigned char*)alogs+inlen,&tmplen);
-    EVP_CIPHER_CTX_free(ctx);
+    /*temporary log for further arguments check*/
+    struct Log tmplog = {.timestamp = -999,
+                         .token     = "@",
+                         .is_emp    = -999,
+                         .name      = "@",
+                         .is_arr    = -999,
+                         .int_room  = -999,
+                         .logpath   = "@",
+                         .next      = NULL};
 
-    printf("%s\n",alogs);
+    /*decrypt and store plaintext into algos*/
+    if(decrypt((unsigned char *)input,strlen(input),key,iv,sizeof(iv),(unsigned char *) alogs,dec_tag)) {
+      /*try find the person and update tmplog*/
+      if(find_person(alogs,&tmplog,log.name)) {
+        /*if the log file is empty*/
+        if(log.timestamp == -999) {
+          printf("invalid\n");
+          exit(255);
+        }
+
+        /*check timestamp*/
+        if(log.timestamp <= tmplog.timestamp) {
+          printf("invalid\n");
+          exit(255);
+        }
+
+        /*a person cannot be employee and guest at the same time*/
+        if(log.is_emp != tmplog.is_emp) {
+          printf("invalid\n");
+          exit(255);
+        }
+
+        printf("Last: -T %d, %s, %s, %s, %d\n", tmplog.timestamp, tmplog.is_emp==1?"E":"G", tmplog.is_arr==1?"A":"L", tmplog.name, tmplog.int_room);
+        printf("This: -T %d, %s, %s, %s, %d\n", log.timestamp, log.is_emp==1?"E":"G", log.is_arr==1?"A":"L", log.name, log.int_room);
+
+        /*the person just left*/
+        if(tmplog.is_arr == 0) {
+          /*the person just left the gallery*/
+          if(tmplog.int_room == -1) { 
+            /*the person is trying to leave again*/
+            if(log.is_arr == 0) {
+              printf("invalid\n");
+              exit(255);
+            } else {
+              /*the person is trying to enter a room*/
+              if(log.int_room != -1) {
+                printf("invalid\n");
+                exit(255);
+              /*the person is trying to enter the gallery*/
+              } else {
+                /*TODO: append log*/
+              }
+            }
+          /*the person just left a room*/
+          } else {
+            /*the person is trying to leave a room again*/
+            if(log.int_room != -1) {
+              printf("invalid\n");
+              exit(255);
+            /*the person is trying to leave the gallery*/
+            } else {
+              /*TODO: append log*/
+            }
+          }
+        /*the person just entered*/
+        } else {
+          /*the person just entered a room*/
+          if(tmplog.int_room != -1) {
+            /*the person is trying to enter again*/
+            if(log.is_arr == 1) {
+              printf("invalid\n");
+              exit(255);
+            /*the person is trying to exit*/
+            } else {
+              /*the person is trying to exit
+              from a different room*/
+              if(log.int_room != tmplog.int_room) {
+                printf("invalid\n");
+                exit(255);
+              /*the person is trying exit
+              from the current room*/
+              } else {
+                /*TODO: append log*/
+              }
+            }
+          /*the person just entered the gallery*/
+          } else {
+            /*the person is trying to enter again*/
+            if(log.is_arr == 1) {
+              /*the person is trying to enter
+              the gallery again*/
+              if(log.int_room == -1) {
+                printf("invalid\n");
+                exit(255);
+              /*the person is trying to enter a room*/
+              } else {
+                /*TODO: append log*/
+              }
+            /*the person is trying to leave*/
+            } else {
+              /*the perons is trying to leave from
+              a room but he's in the gallery*/
+              if(log.int_room != -1) {
+                printf("invalid\n");
+                exit(255);
+              /*the person is trying to leave the gallery*/
+              } else {
+                /*TODO: append log*/
+              }
+            }
+          }
+        }
+      } else {
+        printf("Person not found\n");
+      }
+    } else {
+      printf("invalid\n");
+      exit(255);
+    }
+    
 
     /*release memory for input*/
     free(input);
