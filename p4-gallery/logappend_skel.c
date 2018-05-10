@@ -170,6 +170,7 @@ int parse_cmdline(int argc, char *argv[], struct Log *log) {
     switch(opt) {
       case 'B':
         //batch file
+        printf("unimplemented\n");
         break;
 
       case 'T':
