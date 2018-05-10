@@ -112,9 +112,10 @@ int append(FILE *fp, unsigned char *plaintext, int plaintext_len, unsigned char 
   /*encrypt*/
   bytes_encrypted = encrypt(plaintext,plaintext_len,key,iv,iv_len,outbuf,tag);
 
-  /*null-terminate tag*/
+  /*null-terminate the tag*/
   tag[16] = '\0';
 
+  /*null-terminate the ciphertext*/
   outbuf[plaintext_len] = '\0';
 
   /*write the ciphertext*/
