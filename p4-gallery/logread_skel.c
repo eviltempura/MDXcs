@@ -24,6 +24,14 @@ struct Room {
   struct Room *next;
 };
 
+int search_room(struct Room *room, int room_id) {
+  return 0;
+}
+
+int search_roster(struct Roster *roster, char *name) {
+  return 0;
+}
+
 int delete_room(struct Room *room, int target_id) {
   return 0;
 }
@@ -61,20 +69,20 @@ int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct R
     token = strtok(NULL,",");
     int_room = atoi(token);
 
-    printf("%s %s just %s room %d at %d\n",is_emp==1?"Employee":"Guest",name,is_arr==1?"arrived":"left",int_room,timestamp);
-
     /*if the person is an employee*/
     if(is_emp) {
       /*if the person is the first employee to be logged*/
       if(emp_flag) {
         /*if it is an arrival*/
         if(is_arr) {
-          /*add the person to roster*/
-          emps->name = malloc(strlen(name));
-          strncpy(emps->name,name,strlen(name));
-          emps->next = NULL;
-          /*set emp_flag to 0*/
+          printf("name1: %s\n",name);
           emp_flag = 0;
+          // /*add the person to roster*/
+          // emps->name = malloc(strlen(name));
+          // strncpy(emps->name,name,strlen(name));
+          // emps->next = NULL;
+          // /*set emp_flag to 0*/
+          // emp_flag = 0;
         /*if it is a departure*/
         } else {
           /*invalid since the person has to enter first*/
@@ -85,20 +93,22 @@ int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct R
       } else {
         /*if it is an arrival*/
         if(is_arr) {
-          /*add the person to roster*/
-          temp_roster = malloc(sizeof(struct Roster));
-          temp_roster->name = malloc(strlen(name));
-          strncpy(temp_roster->name,name,strlen(name));
-          insert_roster(emps,temp_roster);
+          printf("name2: %s\n",name);
+          // /*add the person to roster*/
+          // temp_roster = malloc(sizeof(struct Roster));
+          // temp_roster->name = malloc(strlen(name));
+          // strncpy(temp_roster->name,name,strlen(name));
+          // insert_roster(emps,temp_roster);
         /*if it is a departure*/
         } else {
-          /*delete the person from roster*/
-          delete_roster(emps,name);
-          /*if roster becomes empty*/
-          if(emps->name == NULL && emps->next == NULL) {
-            /*set emp_flag to 1*/
-            emp_flag = 1;
-          }
+          printf("name3 :%s\n",name);
+          // /*delete the person from roster*/
+          // delete_roster(emps,name);
+          // /*if roster becomes empty*/
+          // if(emps->name == NULL && emps->next == NULL) {
+          //   /*set emp_flag to 1*/
+          //   emp_flag = 1;
+          // }
         }
       }
     /*if the person is an employee*/
@@ -107,25 +117,39 @@ int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct R
       if(guest_flag) {
         /*if it is an arrival*/
         if(is_arr) {
-          guests->name = malloc(strlen(name));
-          strncpy(guests->name,name,strlen(name));
-          guests->next = NULL;
-          /*set guest_flag to 0*/
+          printf("name4: %s\n",name);
           guest_flag = 0;
+          // guests->name = malloc(strlen(name));
+          // strncpy(guests->name,name,strlen(name));
+          // guests->next = NULL;
+          // /*set guest_flag to 0*/
+          // guest_flag = 0;
         /*if it is an departure*/
         } else {
           /*invalid since the person has to enter first*/
           printf("invalid\n");
           exit(255);
         }
-      /*if the person is no the first guest to be logged*/
+      /*if the person is not the first guest to be logged*/
       } else {
         /*if it is an arrival*/
         if(is_arr) {
-
+          printf("name5: %s\n",name);
+          // /*add the person to roster*/
+          // temp_roster = malloc(sizeof(struct Roster));
+          // temp_roster->name = malloc(strlen(name));
+          // strncpy(temp_roster->name,name,strlen(name));
+          // insert_roster(guests,temp_roster);
         /*if it a departure*/
         } else {
-
+          printf("name6: %s\n",name);
+          // /*delete the person from roster*/
+          // delete_roster(guests,name);
+          // /*if roster becomes empty*/
+          // if(guests->name == NULL && guests->next == NULL) {
+          //   /*set emp_flag to 1*/
+          //   guest_flag = 1;
+          // }
         }
       }
     }
