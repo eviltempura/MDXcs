@@ -29,12 +29,16 @@ struct Room {
 
 int search_roster(struct Roster *l1, int is_emp, char *name) {
   if(l1 == NULL) {
+    printf("%s not found\n",name);
     return 0;
   }
   if(l1->name == NULL) {
+    printf("%s not found\n",name);
     return 0;
   }
+  printf("Looking for %s %s\n",is_emp==1?"employee":"guest",name);
   if(strcmp(l1->name,name) == 0 && l1->is_emp == is_emp) {
+    printf("found %s\n",name);
     return 1;
   } else {
     return search_roster(l1->next,is_emp,name);
@@ -54,6 +58,9 @@ int search_room(struct Room *l1, int room_id) {
 
 struct Roster *insert_roster(struct Roster *head, struct Roster *l2) {
   struct Roster *l1 = head;
+
+  printf("inserting %s %s\n",l2->is_emp==1?"employee":"guest",l2->name);
+
   while(l1 != NULL) {
     if(strcmp(l1->name,l2->name) >= 0) {
       if(l1->previous == NULL) {
@@ -110,15 +117,18 @@ struct Room *insert_room(struct Room *head, struct Room *l2) {
   return head;
 }
 
-struct Roster *delete_roster(struct Roster *head, char *name) {
+struct Roster *delete_roster(struct Roster *head, int is_emp, char *name) {
   struct Roster *l1 = head;
   struct Roster *l2;
   int comparison;
+
+  printf("deleteing %s %s\n",is_emp==1?"employee":"guest",name);
+
   while(l1 != NULL) {
     comparison = strcmp(l1->name,name);
     if(comparison > 0) {
       return head;
-    } else if(comparison == 0) {
+    } else if(comparison == 0 && l1->is_emp == is_emp) {
       if(l1->previous == NULL) {
         l2 = l1->next;
         if(l2 == NULL) {
@@ -174,23 +184,35 @@ struct Room *delete_room(struct Room *head, int room_id) {
   return head;
 }
 
-void print_roster(struct Roster *l1) {
+void print_roster(struct Roster *l1, int flag) {
+  int is_first = flag;
+
   if(l1 == NULL) {
     return;
   }
   if(l1->name == NULL) {
     return;
   }
-  printf("%s\n",l1->name);
-  print_roster(l1->next);
+  if(!flag) {
+    printf(",%s",l1->name);
+  } else {
+    printf("%s",l1->name);
+  }
+  print_roster(l1->next,flag&&0);
 }
 
-void print_room(struct Room *l1) {
+void print_room(struct Room *l1, int flag) {
+  int is_first = flag;
+
   if(l1 == NULL) {
     return;
   }
-  printf("%d\n",l1->room_id);
-  print_room(l1->next);
+  if(!flag) {
+    printf(",%d",l1->room_id);
+  } else {
+    printf("%d",l1->room_id);
+  }
+  print_room(l1->next,flag&&0);
 }
 
 int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct Room **rooms) {
@@ -229,7 +251,7 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
         /*if it is a departure*/
         } else {
           /*invalid since the person has to enter first*/
-          printf("invalid\n");
+          printf("invalid1\n");
           exit(255);
         }
       /*if the person is not the first employee to be logged*/
@@ -248,13 +270,15 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
           }
         /*if it is a departure*/
         } else {
-          // /*delete the person from roster*/
-          // delete_roster(emps,name);
-          // /*if roster becomes empty*/
-          // if(emps->name == NULL && emps->next == NULL) {
-          //   /*set emp_flag to 1*/
-          //   emp_flag = 1;
-          // }
+          /*delete if the person left the gallery*/
+          if(room_id == -1) {
+            (*emps) = delete_roster((*emps),is_emp,name);
+          }
+          /*if roster becomes empty*/
+          if((*emps) == NULL) {
+            /*set emp_flag to 1*/
+            emp_flag = 1;
+          }
         }
       }
     /*if the person is a guest*/
@@ -273,7 +297,7 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
         /*if it is an departure*/
         } else {
           /*invalid since the person has to enter first*/
-          printf("invalid\n");
+          printf("invalid2\n");
           exit(255);
         }
       /*if the person is not the first guest to be logged*/
@@ -292,14 +316,15 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
           }
         /*if it is a departure*/
         } else {
-          printf("name6: %s\n",name);
-          // /*delete the person from roster*/
-          // delete_roster(guests,name);
-          // /*if roster becomes empty*/
-          // if(guests->name == NULL && guests->next == NULL) {
-          //   /*set emp_flag to 1*/
-          //   guest_flag = 1;
-          // }
+          /*delete if the person left the gallery*/
+          if(room_id == -1) {
+            (*guests) = delete_roster((*guests),is_emp,name);
+          }
+          /*if roster becomes empty*/
+          if((*guests) == NULL) {
+            /*set emp_flag to 1*/
+            guest_flag = 1;
+          }
         }
       }
     }
@@ -307,8 +332,6 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
     /*tokenize for next loop*/
     token = strtok(NULL,",");
   }
-
-  print_roster((*emps));
 
   return ans;
 }
@@ -360,7 +383,7 @@ int main(int argc, char *argv[]) {
   /*openssl<block cipher> variables*/
   EVP_CIPHER_CTX *ctx;
   int inlen,tmplen,success;
-  unsigned char iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  unsigned char iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   unsigned char tag[32];
 
   /*rosters and rooms*/
@@ -396,7 +419,7 @@ int main(int argc, char *argv[]) {
         if(strcheck(argv[optind-1],1,1,1,0)) {
           token = argv[optind-1];
         } else {
-          printf("invalid\n");
+          printf("invalid3\n");
           exit(255);
         }
         break;
@@ -427,38 +450,38 @@ int main(int argc, char *argv[]) {
 
   /*token and logpath must be provided*/
   if(token == NULL || logpath == NULL) {
-    printf("invalid\n");
+    printf("invalid4\n");
     exit(255);
   }
 
   /*-S and -R cannot be present at the same time*/
   if(sflag && rflag) {
-    printf("invalid\n");
+    printf("invalid5\n");
     exit(255);
   }
 
   /*Either -E or -G must be provided*/
   if(rflag == 1 && is_emp == -999) {
-    printf("invalid\n");
+    printf("invalid6\n");
     exit(255);
   }
 
   /*-R and name must be provided at the same time*/
   if(rflag == 1 && name == NULL) {
-    printf("invalid\n");
+    printf("invalid7\n");
     exit(255);
   }
 
   /*log must already exist*/
   if(access(logpath,F_OK) < 0) {
-    printf("invalid\n");
+    printf("invalid8\n");
     exit(255);
   }
 
   /*open the log*/
   fp = fopen(logpath, "r");
   if(fp == NULL) {
-    printf("invalid\n");
+    printf("invalid9\n");
     exit(255);
   }
 
@@ -496,13 +519,18 @@ int main(int argc, char *argv[]) {
   EVP_CIPHER_CTX_free(ctx);
 
   if(success == 0) {
-    printf("invalid\n");
+    printf("invalid10\n");
     exit(255);
   }
 
   printf("Plaintext: %s\n", alogs);
 
   load_logs(alogs,&emps,&guests,&rooms);
+
+  print_roster(emps,1);
+  printf("\n");
+  print_roster(guests,1);
+  printf("\n");
 
   EVP_cleanup();
   free(input);
