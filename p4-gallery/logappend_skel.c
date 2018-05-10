@@ -129,8 +129,9 @@ int append(FILE *fp, unsigned char *plaintext, int plaintext_len, unsigned char 
 
 int strcheck(char *str, int lc, int uc, int num, int path_chars) {
   int lc_ans = lc, uc_ans = uc, num_ans = num, path_chars_ans = path_chars;
+  int i = 0;
 
-  for(int i = 0; i < strlen(str); i++) {
+  for(; i < strlen(str); i++) {
     /*check a-z*/
     if(str[i] >= 97 && str[i] <= 122) {
       lc_ans = lc_ans | 1;
