@@ -26,14 +26,13 @@ struct Room {
 
 int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct Room *rooms) {
   char *token, *name;
-  int timestamp, is_emp, is_arr, int_room;
-  int emp_flag = 1, guest_flag = 1, room_flag = 1, ans = 1;
-  struct Roster *ans_emps, *ans_guests;
-  struct Room *ans_rooms;
+  int is_emp, is_arr;
+  int emp_flag = 1, guest_flag = 1, ans = 1;
+  // struct Roster *ans_emps, *ans_guests;
+  // struct Room *ans_rooms;
 
   token = strtok(alogs,",");
   while(token != NULL) {
-    timestamp = atoi(token);
     token = strtok(NULL,",");
     is_emp = atoi(token);
     token = strtok(NULL,",");
@@ -41,7 +40,6 @@ int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct R
     token = strtok(NULL,",");
     name = token;
     token = strtok(NULL,",");
-    int_room = atoi(token);
 
     /*if the person is an employee*/
     if(is_emp) {
@@ -137,8 +135,9 @@ int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct R
 
 int strcheck(char *str, int lc, int uc, int num, int path_chars) {
   int lc_ans = lc, uc_ans = uc, num_ans = num, path_chars_ans = path_chars;
+  int i = 0;
 
-  for(int i = 0; i < strlen(str); i++) {
+  for(; i < strlen(str); i++) {
     /*check a-z*/
     if(str[i] >= 97 && str[i] <= 122) {
       lc_ans = lc_ans | 1;
