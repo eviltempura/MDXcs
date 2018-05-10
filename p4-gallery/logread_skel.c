@@ -24,72 +24,12 @@ struct Room {
   struct Room *next;
 };
 
-int search_room(struct Room *room, int room_id) {
-  if(room == NULL) {
-    return 0;
-  }
-
-  /*found*/
-  if(room->room_id == room_id) {
-    return 1;
-  /*recurse*/
-  } else {
-    return search_room(room->next,room_id);
-  }
-
-  return 0;
-}
-
-int search_roster(struct Roster *roster, char *name) {
-  if(roster == NULL) {
-    return 0;
-  }
-
-  /*found*/
-  if(roster->name != NULL && strcmp(roster->name,name) == 0) {
-    return 1;
-  /*recurse*/
-  } else {
-    return search_roster(roster->next,name);
-  }
-
-  return 0;
-}
-
-int delete_room(struct Room **room, int target_id) {
-  if((*room)->room_id == target_id) {
-
-  }
-  return 0;
-}
-
-int delete_roster(struct Roster **roster, char *target_name) {
-  if((*roster)->name != NULL && strcmp((*roster)->name,target_name) == 0) {
-    *roster = (*roster)->next;
-    return 1;
-  } else {
-    delete_roster(&(*roster)->next,target_name);
-  }
-
-  return 0;
-}
-
-int insert_room(struct Room *l1, struct Room *l2) {
-  printf("room1: %d, room2: %d\n",l1->room_id,l2->room_id);
-  return 0;
-}
-
-int insert_roster(struct Roster *l1, struct Roster *l2) {
-  printf("name1: %s, name2: %s\n",l1->name,l2->name);
-  return 0;
-}
-
 int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct Room *rooms) {
   char *token, *name;
   int timestamp, is_emp, is_arr, int_room;
   int emp_flag = 1, guest_flag = 1, room_flag = 1, ans = 1;
-  struct Roster *temp_roster;
-  struct Room *temp_room;
+  struct Roster *ans_emps, *ans_guests;
+  struct Room *ans_rooms;
 
   token = strtok(alogs,",");
   while(token != NULL) {
@@ -127,11 +67,6 @@ int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct R
       } else {
         /*if it is an arrival*/
         if(is_arr) {
-          if(search_roster(emps,name)) {
-
-          } else {
-
-          }
           printf("name2: %s\n",name);
           // /*add the person to roster*/
           // temp_roster = malloc(sizeof(struct Roster));
@@ -140,7 +75,6 @@ int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct R
           // insert_roster(emps,temp_roster);
         /*if it is a departure*/
         } else {
-          delete_roster(&emps,name);
           printf("name3 :%s\n",name);
           // /*delete the person from roster*/
           // delete_roster(emps,name);
@@ -174,11 +108,6 @@ int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct R
       } else {
         /*if it is an arrival*/
         if(is_arr) {
-          if(search_roster(guests,name)) {
-
-          } else {
-
-          }
           printf("name5: %s\n",name);
           // /*add the person to roster*/
           // temp_roster = malloc(sizeof(struct Roster));
@@ -187,7 +116,6 @@ int load_logs(char * alogs, struct Roster *emps, struct Roster *guests, struct R
           // insert_roster(guests,temp_roster);
         /*if it a departure*/
         } else {
-          delete_roster(&guests,name);
           printf("name6: %s\n",name);
           // /*delete the person from roster*/
           // delete_roster(guests,name);
