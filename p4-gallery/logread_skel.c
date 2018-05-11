@@ -220,261 +220,64 @@ void print_room(struct Room *l1) {
   print_room(l1->next);
 }
 
-// int load_logs2(char * alogs, struct Room **rooms) {
-//   char *token, *name;
-//   int is_emp, is_arr, room_id;
-//   int emp_flag = 1, guest_flag = 1, ans = 1;
-//   struct Roster *temp_roster;
-//   struct Room *temp_room, *temp_room2;
+int load_logs2(char * alogs, struct Room **rooms) {
+  char *token, *name;
+  int is_emp, room_id;
+  int ans = 1;
+  struct Roster *temp_roster;
+  struct Room *temp_room;
 
-//   token = strtok(alogs,",");
-//   while(token != NULL) {
-//     /*timestamp = atoi(token);*/
-//     token = strtok(NULL,",");
-//     is_emp = atoi(token);
-//     token = strtok(NULL,",");
-//     is_arr = atoi(token);
-//     token = strtok(NULL,",");
-//     name = token;
-//     token = strtok(NULL,",");
-//     room_id = atoi(token);
+  token = strtok(alogs,",");
+  while(token != NULL) {
+    /*timestamp = atoi(token);*/
+    token = strtok(NULL,",");
+    is_emp = atoi(token);
+    token = strtok(NULL,",");
+    /*is_arr = atoi(token);*/
+    token = strtok(NULL,",");
+    name = token;
+    token = strtok(NULL,",");
+    room_id = atoi(token);
 
-//     /*create a room to be added*/
-//     temp_room = malloc(sizeof(struct Room));
-//     temp_room->room_id = room_id;
-//     temp_room->roster = NULL;
-//     temp_room->previous = NULL;
-//     temp_room->next = NULL;
+    /*create a roster to be added*/
+    temp_roster = malloc(sizeof(struct Roster));
+    temp_roster->name = malloc(strlen(name));
+    strncpy(temp_roster->name,name,strlen(name));
+    temp_roster->previous = NULL;
+    temp_roster->next = NULL;
 
-//     /*if the person is an employee*/
-//     if(is_emp) {
-//       /*set temp_roster to employee*/
-//       temp_roster->is_emp = 1;
-//       /*if the person is the first employee to be logged*/
-//       if(emp_flag) {
-//         /*if it is an arrival*/
-//         if(is_arr) {
-//           /*add the person to roster*/
-//           (*emps)->name = malloc(strlen(name));
-//           strncpy((*emps)->name,name,strlen(name));
-//           (*emps)->is_emp = 1;
-//           (*emps)->previous = NULL;
-//           (*emps)->next = NULL;
+    /*create a room to be added*/
+    temp_room = malloc(sizeof(struct Room));
+    temp_room->room_id = room_id;
+    temp_room->roster = NULL;
+    temp_room->previous = NULL;
+    temp_room->next = NULL;
 
-//           /*if room not found*/
-//           if(!search_room((*rooms),room_id)) {
-//             /*if no room exists*/
-//             if((*rooms)->room_id == -999) {
-//               (*rooms)->room_id = room_id;
-//               (*rooms)->roster = temp_roster;
-//               (*rooms)->previous = NULL;
-//               (*rooms)->next = NULL;
-//             /*if room does not match*/
-//             } else {
-//               /*add person into roster*/
-//               temp_room->roster = temp_roster;
-//               (*rooms) = insert_room((*rooms),temp_room);
-//             }
-//           /*if room found*/
-//           } else {
-//             temp_room = get_room((*rooms),room_id);
-//             temp_room->roster = insert_roster(temp_room->roster,temp_roster);
-//           }
+    if((*rooms)->room_id == -999) {
+      (*rooms)->room_id = room_id;
+      (*rooms)->roster = temp_roster;
+      (*rooms)->previous = NULL;
+      (*rooms)->next = NULL;
+    } else {
+      /*if room found*/
+      if(search_room((*rooms),room_id)) {
+        temp_room = get_room((*rooms),room_id);
+        if(!search_roster(temp_room->roster,is_emp,name)) {
+          temp_room->roster = insert_roster(temp_room->roster,temp_roster);
+        }
+      /*if room not found*/
+      } else {
+        temp_room->roster = temp_roster;
+        (*rooms) = insert_room((*rooms),temp_room);
+      }
+    }
 
-//           /*set emp_flag to 0*/
-//           emp_flag = 0;
-//         /*if it is a departure*/
-//         } else {
-//           /*invalid since the person has to enter first*/
-//           printf("invalid");
-//           exit(255);
-//         }
-//       /*if the person is not the first employee to be logged*/
-//       } else {
-//         /*if it is an arrival*/
-//         if(is_arr) {
-//           /*add if the person is not in the gallery*/
-//           if(!search_roster((*emps),is_emp,name)) {
-//             (*emps) = insert_roster((*emps),temp_roster);
+    /*tokenize for next loop*/
+    token = strtok(NULL,",");
+  }
 
-//             /*create another roster for room roster*/
-//             temp_roster = malloc(sizeof(struct Roster));
-//             temp_roster->name = malloc(strlen(name));
-//             strncpy(temp_roster->name,name,strlen(name));
-//             temp_roster->is_emp = is_emp;
-//             temp_roster->previous = NULL;
-//             temp_roster->next = NULL;
-//           }
-
-//           /*if room not found*/
-//           if(!search_room((*rooms),room_id)) {
-//             if(room_id != -1) {
-//               temp_room2 = get_room((*rooms),-1);
-//               temp_room2->roster = delete_roster(temp_room2->roster,is_emp,name);
-//               if(temp_room2->roster == NULL) {
-//                 (*rooms) = delete_room((*rooms),-1);
-//               }
-//             }
-//             temp_room->roster = temp_roster;
-//             if((*rooms) == NULL) {
-//               (*rooms) = temp_room;
-//             } else {
-//               (*rooms) = insert_room((*rooms),temp_room);
-//             }
-//           /*if room found*/
-//           } else {
-//             if(room_id != -1) {
-//               temp_room2 = get_room((*rooms),-1);
-//               temp_room2->roster = delete_roster(temp_room2->roster,is_emp,name);
-//               if(temp_room2->roster == NULL) {
-//                 (*rooms) = delete_room((*rooms),-1);
-//               }
-//             }
-//             temp_room = get_room((*rooms),room_id);
-//             temp_room->roster = insert_roster(temp_room->roster,temp_roster);
-//           }
-
-//         /*if it is a departure*/
-//         } else {
-//           /*delete if the person left the gallery*/
-//           if(room_id == -1) {
-//             (*emps) = delete_roster((*emps),is_emp,name);
-//           }
-
-//           temp_room = get_room((*rooms),room_id);
-//           temp_room->roster = delete_roster(temp_room->roster,is_emp,name);
-//           if(temp_room->roster == NULL) {
-//             (*rooms) = delete_room((*rooms),room_id);
-//             if(room_id != -1) {
-//               temp_room = get_room((*rooms),-1);
-//               temp_room->roster = insert_roster(temp_room->roster,temp_roster);
-//             }
-//           }
-
-//           /*if roster becomes empty*/
-//           if((*emps) == NULL) {
-//             /*set emp_flag to 1*/
-//             emp_flag = 1;
-//           }
-//         }
-//       }
-//     /*if the person is a guest*/
-//     } else {
-//       /*set temp_roster to guest*/
-//       temp_roster->is_emp = 0;
-//       /*if the person is the first guest to be logged*/
-//       if(guest_flag) {
-//         /*if it is an arrival*/
-//         if(is_arr) {
-//           (*guests)->name = malloc(strlen(name));
-//           strncpy((*guests)->name,name,strlen(name));
-//           (*guests)->is_emp = 0;
-//           (*guests)->previous = NULL;
-//           (*guests)->next = NULL;
-//           /*if room not found*/
-//           if(!search_room((*rooms),room_id)) {
-//             /*if no room exists*/
-//             if((*rooms)->room_id == -999) {
-//               (*rooms)->room_id = room_id;
-//               (*rooms)->roster = temp_roster;
-//               (*rooms)->previous = NULL;
-//               (*rooms)->next = NULL;
-//             /*if room does not match*/
-//             } else {
-//               temp_room->roster = temp_roster;
-//               (*rooms) = insert_room((*rooms),temp_room);
-//             }
-//           /*if room found*/
-//           } else {
-//             temp_room = get_room((*rooms),room_id);
-//             temp_room->roster = insert_roster(temp_room->roster,temp_roster);
-//           }
-
-//           /*set guest_flag to 0*/
-//           guest_flag = 0;
-//         /*if it is an departure*/
-//         } else {
-//           /*invalid since the person has to enter first*/
-//           printf("invalid");
-//           exit(255);
-//         }
-//       /*if the person is not the first guest to be logged*/
-//       } else {
-//         /*if it is an arrival*/
-//         if(is_arr) {
-//           /*add if the person is not already in the gallery*/
-//           if(!search_roster((*guests),is_emp,name)) {
-//             (*guests) = insert_roster((*guests),temp_roster);
-
-//             /*create a new roster to room roster*/
-//             temp_roster = malloc(sizeof(struct Roster));
-//             temp_roster->name = malloc(strlen(name));
-//             strncpy(temp_roster->name,name,strlen(name));
-//             temp_roster->is_emp = is_emp;
-//             temp_roster->previous = NULL;
-//             temp_roster->next = NULL;
-//           }
-
-//           /*if room not found*/
-//           if(!search_room((*rooms),room_id)) {
-//             if(room_id != -1) {
-//               temp_room2 = get_room((*rooms),-1);
-//               temp_room2->roster = delete_roster(temp_room2->roster,is_emp,name);
-//               if(temp_room2->roster == NULL) {
-//                 (*rooms) = delete_room((*rooms),-1);
-//               }
-//             }
-
-//             temp_room->roster = temp_roster;
-//             if((*rooms) == NULL) {
-//               (*rooms) = temp_room;
-//             } else {
-//               (*rooms) = insert_room((*rooms),temp_room);
-//             }
-//           /*if room found*/
-//           } else {
-//             if(room_id != -1) {
-//               temp_room2 = get_room((*rooms),-1);
-//               temp_room2->roster = delete_roster(temp_room2->roster,is_emp,name);
-//               if(temp_room2->roster == NULL) {
-//                 (*rooms) = delete_room((*rooms),-1);
-//               }
-//             }
-//             temp_room = get_room((*rooms),room_id);
-//             temp_room->roster = insert_roster(temp_room->roster,temp_roster);
-//           }
-//         /*if it is a departure*/
-//         } else {
-//           /*delete if the person left the gallery*/
-//           if(room_id == -1) {
-//             (*guests) = delete_roster((*guests),is_emp,name);
-//           }
-
-//           temp_room = get_room((*rooms),room_id);
-//           temp_room->roster = delete_roster(temp_room->roster,is_emp,name);
-//           if(temp_room->roster == NULL) {
-//             (*rooms) = delete_room((*rooms),room_id);
-//             if(room_id != -1) {
-//               temp_room = get_room((*rooms),-1);
-//               temp_room->roster = insert_roster(temp_room->roster,temp_roster);
-//             }
-//           }
-
-//           /*if roster becomes empty*/
-//           if((*guests) == NULL) {
-//             /*set emp_flag to 1*/
-//             guest_flag = 1;
-//           }
-//         }
-//       }
-//     }
-
-//     /*tokenize for next loop*/
-//     token = strtok(NULL,",");
-//   }
-
-//   return ans;
-// }
+  return ans;
+}
 
 int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct Room **rooms) {
   char *token, *name;
@@ -549,7 +352,7 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
         /*if it is a departure*/
         } else {
           /*invalid since the person has to enter first*/
-          printf("invalid");
+          printf("invalid3");
           exit(255);
         }
       /*if the person is not the first employee to be logged*/
@@ -658,7 +461,7 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
         /*if it is an departure*/
         } else {
           /*invalid since the person has to enter first*/
-          printf("invalid");
+          printf("invalid4");
           exit(255);
         }
       /*if the person is not the first guest to be logged*/
@@ -775,7 +578,7 @@ int main(int argc, char *argv[]) {
   int opt,fsize;
   int sflag = 0, rflag = 0, is_emp = -999;
   char *logpath = NULL, *name = NULL;
-  char *token, *input, *alogs;
+  char *token, *input, *alogs, *alogs_copy;
   FILE *fp;
 
   /*openssl<hashing> variables*/
@@ -795,9 +598,14 @@ int main(int argc, char *argv[]) {
                    .roster = NULL,
                    .previous = NULL,
                    .next = NULL};
+  struct Room r2 = {.room_id = -999,
+                   .roster = NULL,
+                   .previous = NULL,
+                   .next = NULL};
   struct Roster *emps = &e;
   struct Roster *guests = &g;
   struct Room *rooms = &r;
+  struct Room *history = &r2;
 
   ////////////////////////////////////////////////
   /////////////////variables//////////////////////
@@ -825,7 +633,7 @@ int main(int argc, char *argv[]) {
         if(strcheck(argv[optind-1],1,1,1,0)) {
           token = argv[optind-1];
         } else {
-          printf("invalid");
+          printf("invalid5");
           exit(255);
         }
         break;
@@ -856,38 +664,38 @@ int main(int argc, char *argv[]) {
 
   /*token and logpath must be provided*/
   if(token == NULL || logpath == NULL) {
-    printf("invalid");
+    printf("invalid6");
     exit(255);
   }
 
   /*-S and -R cannot be present at the same time*/
   if(sflag && rflag) {
-    printf("invalid");
+    printf("invalid7");
     exit(255);
   }
 
   /*Either -E or -G must be provided*/
   if(rflag == 1 && is_emp == -999) {
-    printf("invalid");
+    printf("invalid8");
     exit(255);
   }
 
   /*-R and name must be provided at the same time*/
   if(rflag == 1 && name == NULL) {
-    printf("invalid");
+    printf("invalid9");
     exit(255);
   }
 
   /*log must already exist*/
   if(access(logpath,F_OK) < 0) {
-    printf("invalid");
+    printf("invalid10");
     exit(255);
   }
 
   /*open the log*/
   fp = fopen(logpath, "r");
   if(fp == NULL) {
-    printf("invalid");
+    printf("invalid11");
     exit(255);
   }
 
@@ -899,7 +707,7 @@ int main(int argc, char *argv[]) {
   EVP_MD_CTX_destroy(mdctx);
 
   /*null-terminate the key*/
-  key[32] = '0';
+  key[32] = '\0';
 
   /*find the size of the file*/
   fseek(fp,0L,SEEK_END);
@@ -932,7 +740,11 @@ int main(int argc, char *argv[]) {
     exit(255);
   }
 
+  alogs_copy = malloc(strlen(alogs)+1);
+  strncpy(alogs_copy,alogs,strlen(alogs));
+
   load_logs(alogs,&emps,&guests,&rooms);
+  load_logs2(alogs_copy,&history);
 
   if(sflag) {
     print_roster(emps,1);
@@ -943,7 +755,7 @@ int main(int argc, char *argv[]) {
   }
 
   if(rflag) {
-
+    print_room(history);
   }
 
   EVP_cleanup();
