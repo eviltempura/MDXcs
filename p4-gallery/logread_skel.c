@@ -254,6 +254,7 @@ int load_logs2(char * alogs, struct Room **rooms, int target_is_emp, char *targe
       if(is_arr == 1 && room_id != -1) {
         if(flag) {
           printf("%d",room_id);
+          flag = 0;
         } else {
           printf(",%d",room_id);
         }
