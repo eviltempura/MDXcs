@@ -554,7 +554,6 @@ int main(int argc, char *argv[]) {
         }
       }
     } else {
-      printf("%s\n", alogs);
       printf("invalid19\n");
       exit(255);
     }
