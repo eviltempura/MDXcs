@@ -251,7 +251,7 @@ int load_logs2(char * alogs, struct Room **rooms) {
     temp_room->room_id = room_id;
     temp_room->roster = NULL;
     temp_room->previous = NULL;
-    temp_room->next = NULL;
+    temp_room->next = NULL; 
 
     if((*rooms)->room_id == -999) {
       (*rooms)->room_id = room_id;

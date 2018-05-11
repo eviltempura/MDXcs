@@ -1,6 +1,6 @@
 all: logappend logread
 
-CFLAGS=-g -Wall
+CFLAGS=-g -Wall 
 LFLAGS=-lcrypto
 
 UNAME := $(shell uname)

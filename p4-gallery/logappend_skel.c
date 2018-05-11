@@ -116,7 +116,7 @@ int append(FILE *fp, unsigned char *plaintext, int plaintext_len, unsigned char 
   tag[16] = '\0';
 
   /*null-terminate the ciphertext*/
-  outbuf[plaintext_len] = '\0';
+  outbuf[plaintext_len] = '\0'; 
 
   /*write the ciphertext*/
   fprintf(fp,"%s%s",outbuf,tag);
