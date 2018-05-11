@@ -309,7 +309,7 @@ int main(int argc, char *argv[]) {
   unsigned int md_len;
 
   /*openssl<block cipher> variables*/
-  unsigned char iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  unsigned char *iv = (unsigned char *)"0123456789012345";
   unsigned char dec_tag[32];
 
   /*initialize log for later arugments check*/
@@ -331,7 +331,7 @@ int main(int argc, char *argv[]) {
   /*print invalid and exit with 255
   if argument chekc didn't pass*/
   if(result == 0) {
-    printf("invalid1\n");
+    printf("invalid\n");
     exit(255);
   }
 
@@ -341,7 +341,7 @@ int main(int argc, char *argv[]) {
   if(log.timestamp == -999 || strcmp(log.token,"@") == 0
   || log.is_emp == -999    || strcmp(log.name,"@") == 0
   || log.is_arr == -999    || strcmp(log.logpath,"@") == 0) {
-    printf("invalid2\n");
+    printf("invalid\n");
     exit(255);
   }
 
@@ -353,7 +353,7 @@ int main(int argc, char *argv[]) {
   /*try openning the log*/
   fp = fopen(log.logpath, "a+");
   if(fp == NULL) {
-    printf("invalid3\n");
+    printf("invalid\n");
     exit(255);
   }
 
@@ -363,6 +363,9 @@ int main(int argc, char *argv[]) {
   EVP_DigestUpdate(mdctx,log.token,strlen(log.token));
   EVP_DigestFinal_ex(mdctx,key,&md_len);
   EVP_MD_CTX_destroy(mdctx);
+
+  /*null-terminate the key*/
+  key[32] = '\0';
 
   /*format log*/
   output = malloc(sizeof(char)*strlen(log.name)+64);
@@ -422,19 +425,19 @@ int main(int argc, char *argv[]) {
       if(find_person(alogs,&tmplog,log.name,log.is_emp)) {
         /*if the log file is empty*/
         if(log.timestamp == -999) {
-          printf("invalid4\n");
+          printf("invalid\n");
           exit(255);
         }
 
         /*check timestamp*/
         if(log.timestamp <= tmplog.timestamp) {
-          printf("invalid5\n");
+          printf("invalid\n");
           exit(255);
         }
 
         /*a person cannot be employee and guest at the same time*/
         if(log.is_emp != tmplog.is_emp) {
-          printf("invalid6\n");
+          printf("invalid\n");
           exit(255);
         }
 
@@ -444,12 +447,12 @@ int main(int argc, char *argv[]) {
           if(tmplog.int_room == -1) { 
             /*the person is trying to leave again*/
             if(log.is_arr == 0) {
-              printf("invalid7\n");
+              printf("invalid\n");
               exit(255);
             } else {
               /*the person is trying to enter a room*/
               if(log.int_room != -1) {
-                printf("invalid8\n");
+                printf("invalid\n");
                 exit(255);
               /*the person is trying to enter the gallery*/
               } else {
@@ -463,7 +466,7 @@ int main(int argc, char *argv[]) {
               /*the person is trying to leave a
               room that he's not currently in*/
               if(log.int_room != -1) {
-                printf("invalid9\n");
+                printf("invalid\n");
                 exit(255);
               } else {
                 /*TODO: append log*/
@@ -471,7 +474,7 @@ int main(int argc, char *argv[]) {
             } else {
               /*the person is trying to enter gallery again*/
               if(log.int_room == -1) {
-                printf("invalid10\n");
+                printf("invalid\n");
                 exit(255);
               } else {
                 /*TODO: append log*/
@@ -484,14 +487,14 @@ int main(int argc, char *argv[]) {
           if(tmplog.int_room != -1) {
             /*the person is trying to enter again*/
             if(log.is_arr == 1) {
-              printf("invalid11\n");
+              printf("invalid\n");
               exit(255);
             /*the person is trying to exit*/
             } else {
               /*the person is trying to exit
               from a different room*/
               if(log.int_room != tmplog.int_room) {
-                printf("invalid12\n");
+                printf("invalid\n");
                 exit(255);
               /*the person is trying exit
               from the current room*/
@@ -506,7 +509,7 @@ int main(int argc, char *argv[]) {
               /*the person is trying to enter
               the gallery again*/
               if(log.int_room == -1) {
-                printf("invalid13\n");
+                printf("invalid\n");
                 exit(255);
               /*the person is trying to enter a room*/
               } else {
@@ -517,7 +520,7 @@ int main(int argc, char *argv[]) {
               /*the perons is trying to leave from
               a room but he's in the gallery*/
               if(log.int_room != -1) {
-                printf("invalid14\n");
+                printf("invalid\n");
                 exit(255);
               /*the person is trying to leave the gallery*/
               } else {
@@ -529,32 +532,32 @@ int main(int argc, char *argv[]) {
       } else {
         /*if the log file is empty*/
         if(log.timestamp == -999) {
-          printf("invalid15\n");
+          printf("invalid\n");
           exit(255);
         }
 
         /*check timestamp*/
         if(log.timestamp <= tmplog.timestamp) {
-          printf("invalid16\n");
+          printf("invalid\n");
           exit(255);
         }
 
         /*the person is trying to leave
         when he's not in any room*/
         if(log.is_arr == 0) {
-          printf("invalid17\n");
+          printf("invalid\n");
         } else {
           /*the person is trying to enter a
           room without entering the gallery*/
           if(log.int_room != -1) {
-            printf("invalid18\n");
+            printf("invalid\n");
           } else {
             /*TODO: append log*/
           }
         }
       }
     } else {
-      printf("invalid19\n");
+      printf("invalid\n");
       exit(255);
     }
 

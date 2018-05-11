@@ -227,9 +227,6 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
 
   token = strtok(alogs,",");
   while(token != NULL) {
-    print_room((*rooms));
-    printf("\n");
-    printf("\n");
     /*timestamp = atoi(token);*/
     token = strtok(NULL,",");
     is_emp = atoi(token);
@@ -294,7 +291,7 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
         /*if it is a departure*/
         } else {
           /*invalid since the person has to enter first*/
-          printf("invalid1\n");
+          printf("invalid\n");
           exit(255);
         }
       /*if the person is not the first employee to be logged*/
@@ -403,7 +400,7 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
         /*if it is an departure*/
         } else {
           /*invalid since the person has to enter first*/
-          printf("invalid2\n");
+          printf("invalid\n");
           exit(255);
         }
       /*if the person is not the first guest to be logged*/
@@ -531,7 +528,7 @@ int main(int argc, char *argv[]) {
   /*openssl<block cipher> variables*/
   EVP_CIPHER_CTX *ctx;
   int inlen,tmplen,success;
-  unsigned char iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  unsigned char *iv = (unsigned char *)"0123456789012345";
   unsigned char tag[32];
 
   /*rosters and rooms*/
@@ -570,7 +567,7 @@ int main(int argc, char *argv[]) {
         if(strcheck(argv[optind-1],1,1,1,0)) {
           token = argv[optind-1];
         } else {
-          printf("invalid3\n");
+          printf("invalid\n");
           exit(255);
         }
         break;
@@ -601,38 +598,38 @@ int main(int argc, char *argv[]) {
 
   /*token and logpath must be provided*/
   if(token == NULL || logpath == NULL) {
-    printf("invalid4\n");
+    printf("invalid\n");
     exit(255);
   }
 
   /*-S and -R cannot be present at the same time*/
   if(sflag && rflag) {
-    printf("invalid5\n");
+    printf("invalid\n");
     exit(255);
   }
 
   /*Either -E or -G must be provided*/
   if(rflag == 1 && is_emp == -999) {
-    printf("invalid6\n");
+    printf("invalid\n");
     exit(255);
   }
 
   /*-R and name must be provided at the same time*/
   if(rflag == 1 && name == NULL) {
-    printf("invalid7\n");
+    printf("invalid\n");
     exit(255);
   }
 
   /*log must already exist*/
   if(access(logpath,F_OK) < 0) {
-    printf("invalid8\n");
+    printf("invalid\n");
     exit(255);
   }
 
   /*open the log*/
   fp = fopen(logpath, "r");
   if(fp == NULL) {
-    printf("invalid9\n");
+    printf("invalid\n");
     exit(255);
   }
 
@@ -642,6 +639,9 @@ int main(int argc, char *argv[]) {
   EVP_DigestUpdate(mdctx,token,strlen(token));
   EVP_DigestFinal_ex(mdctx,key,&md_len);
   EVP_MD_CTX_destroy(mdctx);
+
+  /*null-terminate the key*/
+  key[32] = '0';
 
   /*find the size of the file*/
   fseek(fp,0L,SEEK_END);
@@ -670,11 +670,9 @@ int main(int argc, char *argv[]) {
   EVP_CIPHER_CTX_free(ctx);
 
   if(success == 0) {
-    printf("invalid10\n");
+    printf("invalid\n");
     exit(255);
   }
-
-  printf("Plaintext: %s\n", alogs);
 
   load_logs(alogs,&emps,&guests,&rooms);
 
