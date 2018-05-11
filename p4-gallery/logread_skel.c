@@ -352,7 +352,7 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
         /*if it is a departure*/
         } else {
           /*invalid since the person has to enter first*/
-          printf("invalid3");
+          printf("invalid c1");
           exit(255);
         }
       /*if the person is not the first employee to be logged*/
@@ -461,7 +461,7 @@ int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct
         /*if it is an departure*/
         } else {
           /*invalid since the person has to enter first*/
-          printf("invalid4");
+          printf("invalid c2");
           exit(255);
         }
       /*if the person is not the first guest to be logged*/
@@ -633,7 +633,7 @@ int main(int argc, char *argv[]) {
         if(strcheck(argv[optind-1],1,1,1,0)) {
           token = argv[optind-1];
         } else {
-          printf("invalid5");
+          printf("invalid c3");
           exit(255);
         }
         break;
@@ -664,38 +664,38 @@ int main(int argc, char *argv[]) {
 
   /*token and logpath must be provided*/
   if(token == NULL || logpath == NULL) {
-    printf("invalid6");
+    printf("invalid c4");
     exit(255);
   }
 
   /*-S and -R cannot be present at the same time*/
   if(sflag && rflag) {
-    printf("invalid7");
+    printf("invalid c5");
     exit(255);
   }
 
   /*Either -E or -G must be provided*/
   if(rflag == 1 && is_emp == -999) {
-    printf("invalid8");
+    printf("invalid c6");
     exit(255);
   }
 
   /*-R and name must be provided at the same time*/
   if(rflag == 1 && name == NULL) {
-    printf("invalid9");
+    printf("invalid c7");
     exit(255);
   }
 
   /*log must already exist*/
   if(access(logpath,F_OK) < 0) {
-    printf("invalid10");
+    printf("invalid c8");
     exit(255);
   }
 
   /*open the log*/
   fp = fopen(logpath, "r");
   if(fp == NULL) {
-    printf("invalid11");
+    printf("invalid c9");
     exit(255);
   }
 
