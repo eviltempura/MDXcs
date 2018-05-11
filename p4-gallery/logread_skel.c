@@ -220,64 +220,64 @@ void print_room(struct Room *l1) {
   print_room(l1->next);
 }
 
-int load_logs2(char * alogs, struct Room **rooms) {
-  char *token, *name;
-  int is_emp, room_id;
-  int ans = 1;
-  struct Roster *temp_roster;
-  struct Room *temp_room;
+// int load_logs2(char * alogs, struct Room **rooms) {
+//   char *token, *name;
+//   int is_emp, room_id;
+//   int ans = 1;
+//   struct Roster *temp_roster;
+//   struct Room *temp_room;
 
-  token = strtok(alogs,",");
-  while(token != NULL) {
-    /*timestamp = atoi(token);*/
-    token = strtok(NULL,",");
-    is_emp = atoi(token);
-    token = strtok(NULL,",");
-    /*is_arr = atoi(token);*/
-    token = strtok(NULL,",");
-    name = token;
-    token = strtok(NULL,",");
-    room_id = atoi(token);
+//   token = strtok(alogs,",");
+//   while(token != NULL) {
+//     /*timestamp = atoi(token);*/
+//     token = strtok(NULL,",");
+//     is_emp = atoi(token);
+//     token = strtok(NULL,",");
+//     /*is_arr = atoi(token);*/
+//     token = strtok(NULL,",");
+//     name = token;
+//     token = strtok(NULL,",");
+//     room_id = atoi(token);
 
-    /*create a roster to be added*/
-    temp_roster = malloc(sizeof(struct Roster));
-    temp_roster->name = malloc(strlen(name));
-    strncpy(temp_roster->name,name,strlen(name));
-    temp_roster->previous = NULL;
-    temp_roster->next = NULL;
+//     /*create a roster to be added*/
+//     temp_roster = malloc(sizeof(struct Roster));
+//     temp_roster->name = malloc(strlen(name));
+//     strncpy(temp_roster->name,name,strlen(name));
+//     temp_roster->previous = NULL;
+//     temp_roster->next = NULL;
 
-    /*create a room to be added*/
-    temp_room = malloc(sizeof(struct Room));
-    temp_room->room_id = room_id;
-    temp_room->roster = NULL;
-    temp_room->previous = NULL;
-    temp_room->next = NULL; 
+//     /*create a room to be added*/
+//     temp_room = malloc(sizeof(struct Room));
+//     temp_room->room_id = room_id;
+//     temp_room->roster = NULL;
+//     temp_room->previous = NULL;
+//     temp_room->next = NULL; 
 
-    if((*rooms)->room_id == -999) {
-      (*rooms)->room_id = room_id;
-      (*rooms)->roster = temp_roster;
-      (*rooms)->previous = NULL;
-      (*rooms)->next = NULL;
-    } else {
-      /*if room found*/
-      if(search_room((*rooms),room_id)) {
-        temp_room = get_room((*rooms),room_id);
-        if(!search_roster(temp_room->roster,is_emp,name)) {
-          temp_room->roster = insert_roster(temp_room->roster,temp_roster);
-        }
-      /*if room not found*/
-      } else {
-        temp_room->roster = temp_roster;
-        (*rooms) = insert_room((*rooms),temp_room);
-      }
-    }
+//     if((*rooms)->room_id == -999) {
+//       (*rooms)->room_id = room_id;
+//       (*rooms)->roster = temp_roster;
+//       (*rooms)->previous = NULL;
+//       (*rooms)->next = NULL;
+//     } else {
+//       /*if room found*/
+//       if(search_room((*rooms),room_id)) {
+//         temp_room = get_room((*rooms),room_id);
+//         if(!search_roster(temp_room->roster,is_emp,name)) {
+//           temp_room->roster = insert_roster(temp_room->roster,temp_roster);
+//         }
+//       /*if room not found*/
+//       } else {
+//         temp_room->roster = temp_roster;
+//         (*rooms) = insert_room((*rooms),temp_room);
+//       }
+//     }
 
-    /*tokenize for next loop*/
-    token = strtok(NULL,",");
-  }
+//     /*tokenize for next loop*/
+//     token = strtok(NULL,",");
+//   }
 
-  return ans;
-}
+//   return ans;
+// }
 
 int load_logs(char * alogs, struct Roster **emps, struct Roster **guests, struct Room **rooms) {
   char *token, *name;
@@ -598,14 +598,14 @@ int main(int argc, char *argv[]) {
                    .roster = NULL,
                    .previous = NULL,
                    .next = NULL};
-  struct Room r2 = {.room_id = -999,
-                   .roster = NULL,
-                   .previous = NULL,
-                   .next = NULL};
+  // struct Room r2 = {.room_id = -999,
+  //                  .roster = NULL,
+  //                  .previous = NULL,
+  //                  .next = NULL};
   struct Roster *emps = &e;
   struct Roster *guests = &g;
   struct Room *rooms = &r;
-  struct Room *history = &r2;
+  // struct Room *history = &r2;
 
   ////////////////////////////////////////////////
   /////////////////variables//////////////////////
@@ -744,7 +744,7 @@ int main(int argc, char *argv[]) {
   strncpy(alogs_copy,alogs,strlen(alogs));
 
   load_logs(alogs,&emps,&guests,&rooms);
-  load_logs2(alogs_copy,&history);
+  // load_logs2(alogs_copy,&history);
 
   if(sflag) {
     print_roster(emps,1);
@@ -755,7 +755,7 @@ int main(int argc, char *argv[]) {
   }
 
   if(rflag) {
-    print_room(history);
+    // print_room(history);
   }
 
   EVP_cleanup();

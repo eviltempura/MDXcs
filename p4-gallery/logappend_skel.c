@@ -105,6 +105,7 @@ int append(FILE *fp, unsigned char *plaintext, int plaintext_len, unsigned char 
   unsigned char *outbuf;
   unsigned char tag[32];
   int bytes_encrypted;
+  int i = 0;
 
   /*allocate memory for outbuf*/
   outbuf = malloc(plaintext_len+32);
@@ -116,10 +117,16 @@ int append(FILE *fp, unsigned char *plaintext, int plaintext_len, unsigned char 
   tag[16] = '\0';
 
   /*null-terminate the ciphertext*/
-  outbuf[plaintext_len] = '\0'; 
+  outbuf[bytes_encrypted] = '\0';
 
   /*write the ciphertext*/
-  fprintf(fp,"%s%s",outbuf,tag);
+  for(;i < bytes_encrypted; i++) {
+    fprintf(fp,"%c",outbuf[i]);
+  }
+  i = 0;
+  for(;i < 16; i++) {
+    fprintf(fp,"%c",tag[i]);
+  }
 
   /*release memory for outbuf*/
   free(outbuf);
@@ -416,7 +423,7 @@ int main(int argc, char *argv[]) {
                          .next      = NULL};
 
     /*decrypt and store plaintext into algos*/
-    if(decrypt((unsigned char *)input,strlen(input),key,iv,sizeof(iv),(unsigned char *) alogs,dec_tag)) {
+    if(decrypt((unsigned char *)input,fsize-16,key,iv,sizeof(iv),(unsigned char *) alogs,dec_tag)) {
       /*copy alogs for later use*/
       alogs_copy = malloc(strlen(alogs));
       strcpy(alogs_copy,alogs);
