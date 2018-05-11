@@ -730,7 +730,7 @@ int main(int argc, char *argv[]) {
   EVP_DecryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,NULL,NULL);
   EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_IVLEN,sizeof(iv),NULL);
   EVP_DecryptInit_ex(ctx,NULL,NULL,key,iv);
-  EVP_DecryptUpdate(ctx,(unsigned char *)alogs,&inlen,(unsigned char*)input,strlen(input));
+  EVP_DecryptUpdate(ctx,(unsigned char *)alogs,&inlen,(unsigned char*)input,fsize-16);
   EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_GCM_SET_TAG,16,tag);
   success = EVP_DecryptFinal_ex(ctx,(unsigned char*)alogs+inlen,&tmplen);
   EVP_CIPHER_CTX_free(ctx);
