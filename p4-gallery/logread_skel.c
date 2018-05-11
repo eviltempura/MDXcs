@@ -804,15 +804,11 @@ int main(int argc, char *argv[]) {
     if(emps != NULL) {
       print_roster(emps,1);
     }
-    if(emps != NULL && guests != NULL) {
-      printf("\n");
-    }
+    printf("\n");
     if(guests != NULL) {
       print_roster(guests,1);
     }
-    if(guests != NULL && rooms != NULL) {
-      printf("\n");
-    }
+    printf("\n");
     if(rooms != NULL) {
       print_room(rooms);
     }
